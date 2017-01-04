@@ -3,6 +3,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 from functools import partial
+from scipy.stats.mstats import kruskalwallis
 
 
 def simulate_sde_once(T, mu, sigma, S0, task_id):
@@ -42,35 +43,39 @@ if __name__ == '__main__':
     sigma = 0.25
     S0 = 80.0
 
-    count = 500000
+    count = 20000
 
-    print 'Simulating SDE'
+    print 'Simulating GBM SDE'
     sde_result = simulate_batch(count, partial(simulate_sde_once, T, mu, sigma, S0))
     print 'Mean', np.average(sde_result)
     print 'Variance', np.var(sde_result)
     print 'Skewness', stats.skew(sde_result)
     print 'Kurtosis', stats.kurtosis(sde_result)
 
-    print 'Simulating Closed Form'
+    print 'Simulating GBM Closed Form'
     closed_form_result = simulate_batch(count, partial(simulate_closed_form_once, T, mu, sigma, S0))
     print 'Mean', np.average(closed_form_result)
     print 'Variance', np.var(closed_form_result)
     print 'Skewness', stats.skew(closed_form_result)
     print 'Kurtosis', stats.kurtosis(closed_form_result)
 
+    print 'Kruskal-Wallis test'
+    h_stat, p_value = kruskalwallis(sde_result, closed_form_result)
+    print 'H Statistics', h_stat, 'P-value', p_value
+
     fig = plt.figure()
     sp1 = fig.add_subplot(211)
-    sp1.hist(sde_result, bins=100)
+    sp1.hist(sde_result, bins=50)
     sp1.set_xlim([0, 250])
-    sp1.set_ylim([0, 0.06 * count])
+    sp1.set_ylim([0, 0.1 * count])
     sp1.grid()
-    sp1.set_title('Discretized SDE')
+    sp1.set_title('Simulations with Discretized GBM SDE')
 
     sp2 = fig.add_subplot(212)
-    sp2.hist(closed_form_result, bins=100)
+    sp2.hist(closed_form_result, bins=50)
     sp2.set_xlim([0, 250])
-    sp2.set_ylim([0, 0.06 * count])
+    sp2.set_ylim([0, 0.1 * count])
     sp2.grid()
-    sp2.set_title('Closed Form Solution')
+    sp2.set_title('Simulations with GBM Closed Form')
 
     plt.show()
