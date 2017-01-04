@@ -16,7 +16,7 @@ def simulate_sde_once(T, theta, mu, sigma, X0, task_id):
     X[0] = X0
     for t in xrange(0, steps):
         # dXt = theta * (mu - Xt) * dt + sigma * dWt
-        dXt = theta * (mu -X[t]) * dt + sigma * dW[t]
+        dXt = theta * (mu - X[t]) * dt + sigma * dW[t]
         X[t + 1] = X[t] + dXt
     return X[steps]
 
@@ -29,12 +29,10 @@ def simulate_solution_once(T, theta, mu, sigma, X0, task_id):
 
     integral_term = 0.0
     for s in xrange(steps):
-        integral_term += np.exp(-theta*(T- s*dt)) * dW[s]
+        integral_term += np.exp(-theta * (T - s * dt)) * dW[s]
 
-
-    X_T = X0 * np.exp(-theta * T) +  mu * (1.0 - np.exp(-theta*T)) + sigma * integral_term
+    X_T = X0 * np.exp(-theta * T) + mu * (1.0 - np.exp(-theta * T)) + sigma * integral_term
     return X_T
-
 
 
 def simulate_batch(count, sim_once_func):
@@ -54,8 +52,8 @@ if __name__ == '__main__':
 
     count = 20000
 
-    #print 'expected', X0 * np.exp(-theta * T) + mu * (1.0 - np.exp(-theta * T))
-    #print 'variance', sigma * sigma / 2.0 / theta
+    # print 'expected', X0 * np.exp(-theta * T) + mu * (1.0 - np.exp(-theta * T))
+    # print 'variance', sigma * sigma / 2.0 / theta
 
     print 'Simulating OU SDE'
     sde_result = simulate_batch(count, partial(simulate_sde_once, T, theta, mu, sigma, X0))
@@ -89,4 +87,3 @@ if __name__ == '__main__':
     sp2.set_title('Simulations with OU Solution Form')
 
     plt.show()
-
