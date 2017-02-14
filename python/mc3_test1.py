@@ -27,16 +27,20 @@ if __name__ == '__main__':
 
         trace = pymc3.sample(iterations, step, start, random_seed=1, progressbar=True)
 
-        bins = 50
-        # posterior histogram
-        plt.hist(trace['theta'], bins, histtype='step', normed=True, label='Posterior (MCMC)', color='red')
 
-        # plot analytic prior and posterior
-        x = np.linspace(0, 1, 100)
-        plt.plot(x, stats.beta.pdf(x, alpha, beta), '--', label='Prior', color='blue')
-        plt.plot(x, stats.beta.pdf(x, alpha_post, beta_post), label='Posterior (Analytic)', color='green')
+    bins = 50
+    # posterior histogram
+    plt.hist(trace['theta'], bins, histtype='step', normed=True, label='Posterior (MCMC)', color='red')
 
-        plt.legend(title='Parameters', loc='best')
-        plt.xlabel('$\\theta$, Fairness')
-        plt.ylabel('Density')
-        plt.show()
+    # plot analytic prior and posterior
+    x = np.linspace(0, 1, 100)
+    plt.plot(x, stats.beta.pdf(x, alpha, beta), '--', label='Prior', color='blue')
+    plt.plot(x, stats.beta.pdf(x, alpha_post, beta_post), label='Posterior (Analytic)', color='green')
+
+    plt.legend(title='Parameters', loc='best')
+    plt.xlabel('$\\theta$, Fairness')
+    plt.ylabel('Density')
+    plt.show()
+
+    pymc3.traceplot(trace)
+    plt.show()
