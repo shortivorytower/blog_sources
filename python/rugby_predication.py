@@ -3,6 +3,7 @@ import pandas as pd
 from StringIO import StringIO
 import pymc3 as pm, theano.tensor as tt
 import matplotlib.pyplot as plt
+#import seaborn as sns
 
 
 if __name__=='__main__':
@@ -84,7 +85,10 @@ France,Ireland,20,22""")
             plt.show()
 
             pm.forestplot(trace, varnames=['atts'], ylabels=['France', 'Ireland', 'Scotland', 'Italy', 'England', 'Wales'], main="Team Offense")
+            plt.show()
+
+            pm.forestplot(trace, varnames=['defs'], ylabels=['France', 'Ireland', 'Scotland', 'Italy', 'England', 'Wales'], main="Team Defense")
+            plt.show()
 
             pm.plot_posterior(trace[100:], varnames=['defs'], color='#87ceeb')
-
             plt.show()
