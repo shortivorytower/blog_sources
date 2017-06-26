@@ -25,7 +25,7 @@ if __name__ == '__main__':
         step = pymc3.Metropolis()
         #step = pymc3.NUTS()
 
-        trace = pymc3.sample(iterations, step, start=None, random_seed=1, progressbar=True)
+        trace = pymc3.sample(iterations, step, start=None, random_seed=1, progressbar=True, njobs=3)
 
 
     bins = 50
