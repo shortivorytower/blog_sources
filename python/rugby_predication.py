@@ -81,6 +81,7 @@ France,Ireland,20,22""")
             #start = pm.find_MAP()
             #step = pm.NUTS(state=start)
             step = pm.NUTS()
+            #step = pm.Metropolis()
             #trace = pm.sample(2000, step, init=start)
             trace = pm.sample(2000, step, njobs=5)
 
