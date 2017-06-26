@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from StringIO import StringIO
+from io import StringIO
 import pymc3 as pm, theano.tensor as tt
 import matplotlib.pyplot as plt
 
@@ -78,10 +78,11 @@ France,Ireland,20,22""")
         away_points = pm.Poisson('away_points', mu=away_theta, observed=observed_away_goals)
 
         with model:
-            start = pm.find_MAP()
-            step = pm.NUTS(state=start)
-            trace = pm.sample(2000, step, init=start)
-            #trace = pm.sample(2000, step, njobs=5)
+            #start = pm.find_MAP()
+            #step = pm.NUTS(state=start)
+            step = pm.NUTS()
+            #trace = pm.sample(2000, step, init=start)
+            trace = pm.sample(2000, step, njobs=5)
 
             pm.traceplot(trace)
             plt.show()
