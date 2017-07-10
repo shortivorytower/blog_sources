@@ -1,4 +1,4 @@
-state_prob_dict = {
+state_transitions = {
     0: {'l': 0, 'r': 1, 'u': 0, 'd': 4},
     1: {'l': 0, 'r': 2, 'u': 1, 'd': 5},
     2: {'l': 1, 'r': 3, 'u': 2, 'd': 6},
@@ -18,19 +18,19 @@ state_prob_dict = {
 }
 
 
-def prob(new_state, reward, current_state, action):
+def transition_prob(new_state, reward, current_state, action):
     if reward != -1:
         raise Exception('Expecting all reward value to be -1')
 
-    if not (current_state in state_prob_dict):
-        raise Exception('Unexpected current_state value ' + str(current_state))
+    if not (current_state in state_transitions):
+        raise Exception('Unexpected current_state value {0}'.format(current_state))
 
-    cur_state_dict = state_prob_dict[current_state]
+    cur_state_dict = state_transitions[current_state]
     if not (action in cur_state_dict):
-        return 0.0
+        raise Exception('action {0} is not defined in the state {1}'.format(action, current_state))
     else:
-        expected_next = cur_state_dict[action]
-        if expected_next == new_state:
+        expected_next_state = cur_state_dict[action]
+        if expected_next_state == new_state:
             return 1.0
         else:
             return 0.0
@@ -46,37 +46,41 @@ if __name__ == '__main__':
     # state from 1 to 14
     max_state = 15
     # mapping from state to value
-    V_dict = {}
+    # i.e. the final result we want to compute.
+    state_val_dict = {}
+    # initialize all to zeros
     for i in range(0, max_state + 1):
-        V_dict[i] = 0.0
+        state_val_dict[i] = 0.0
 
     theta = 0.0000001
+    reward = -1
     k = 0
     while True:
         delta = 0.0
-        new_V_dict = {0: 0.0, max_state: 0.0}
-        for s in range(1, max_state):
-            v = V_dict[s]
+        new_state_val_dict = {0: 0.0, max_state: 0.0}
+        for state in range(1, max_state):
+            v = state_val_dict[state]
             new_v = 0.0
-            for a in ['l', 'r', 'u', 'd']:
+            for action in ['l', 'r', 'u', 'd']:
                 exp_reward_for_action = 0.0
                 for new_state in range(0, max_state + 1):
-                    reward = -1
-                    exp_reward_for_action += prob(new_state, reward, s, a) * (reward + gamma * V_dict[new_state])
+                    exp_reward_for_action += transition_prob(new_state, reward, state, action) * (reward + gamma * state_val_dict[new_state])
 
                 new_v += action_prob * exp_reward_for_action
 
-            new_V_dict[s] = new_v
+            # store the result in another new dictionary.
+            new_state_val_dict[state] = new_v
             delta = max(delta, abs(v - new_v))
 
-        V_dict = new_V_dict
+        # replace the result dictionary
+        state_val_dict = new_state_val_dict
 
         k += 1
-        if k % 50 == 0:
-            print('iterated', k)
+        if k % 100 == 0:
+            print('iterated {0} times'.format(k))
         if delta < theta:
             break
 
-    print('Iterative Policy Evaluation Result for grid world:')
-    for s in range(0, max_state + 1):
-        print('state', s, ':', V_dict[s])
+    print('Iterative Policy Evaluation Result')
+    for state in range(0, max_state + 1):
+        print('state {0} value: {1:.2f}'.format(state, state_val_dict[state]))
