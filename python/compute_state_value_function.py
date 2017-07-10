@@ -22,11 +22,11 @@ def transition_prob(new_state, reward, current_state, action):
     if reward != -1:
         raise Exception('Expecting all reward value to be -1')
 
-    if not (current_state in state_transitions):
+    if current_state not in state_transitions:
         raise Exception('Unexpected current_state value {0}'.format(current_state))
 
     cur_state_dict = state_transitions[current_state]
-    if not (action in cur_state_dict):
+    if action not in cur_state_dict:
         raise Exception('action {0} is not defined in the state {1}'.format(action, current_state))
     else:
         expected_next_state = cur_state_dict[action]
