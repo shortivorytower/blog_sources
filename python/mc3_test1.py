@@ -21,11 +21,11 @@ if __name__ == '__main__':
         theta = pymc3.Beta('theta', alpha=alpha, beta=beta)
         y = pymc3.Binomial('y', n=n, p=theta, observed=z)
 
-        start = pymc3.find_MAP()
+        #start = pymc3.find_MAP()
         step = pymc3.Metropolis()
         #step = pymc3.NUTS()
 
-        trace = pymc3.sample(iterations, step, start, random_seed=1, progressbar=True)
+        trace = pymc3.sample(iterations, step, start=None, random_seed=1, progressbar=True, njobs=3)
 
 
     bins = 50

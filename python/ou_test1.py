@@ -14,7 +14,7 @@ def simulate_sde_once(T, theta, mu, sigma, X0, task_id):
     # simulate one path using discretized SDE
     dW = np.random.normal(0, np.sqrt(dt), steps)
     X[0] = X0
-    for t in xrange(0, steps):
+    for t in range(0, steps):
         # dXt = theta * (mu - Xt) * dt + sigma * dWt
         dXt = theta * (mu - X[t]) * dt + sigma * dW[t]
         X[t + 1] = X[t] + dXt
@@ -28,7 +28,7 @@ def simulate_solution_once(T, theta, mu, sigma, X0, task_id):
     dW = np.random.normal(0, np.sqrt(dt), steps)
 
     integral_term = 0.0
-    for s in xrange(steps):
+    for s in range(steps):
         integral_term += np.exp(-theta * (T - s * dt)) * dW[s]
 
     X_T = X0 * np.exp(-theta * T) + mu * (1.0 - np.exp(-theta * T)) + sigma * integral_term
@@ -37,7 +37,7 @@ def simulate_solution_once(T, theta, mu, sigma, X0, task_id):
 
 def simulate_batch(count, sim_once_func):
     pool = Pool(processes=24)
-    result_array = pool.map(sim_once_func, [i for i in xrange(count)])
+    result_array = pool.map(sim_once_func, [i for i in range(count)])
     pool.close()
     pool.join()
     return np.array(result_array)
@@ -55,23 +55,23 @@ if __name__ == '__main__':
     # print 'expected', X0 * np.exp(-theta * T) + mu * (1.0 - np.exp(-theta * T))
     # print 'variance', sigma * sigma / 2.0 / theta
 
-    print 'Simulating OU SDE'
+    print('Simulating OU SDE')
     sde_result = simulate_batch(count, partial(simulate_sde_once, T, theta, mu, sigma, X0))
-    print 'Mean', np.average(sde_result)
-    print 'Variance', np.var(sde_result)
-    print 'Skewness', stats.skew(sde_result)
-    print 'Kurtosis', stats.kurtosis(sde_result)
+    print('Mean', np.average(sde_result))
+    print('Variance', np.var(sde_result))
+    print('Skewness', stats.skew(sde_result))
+    print('Kurtosis', stats.kurtosis(sde_result))
 
-    print 'Simulating OU Solutions'
+    print('Simulating OU Solutions')
     solution_form_result = simulate_batch(count, partial(simulate_solution_once, T, theta, mu, sigma, X0))
-    print 'Mean', np.average(solution_form_result)
-    print 'Variance', np.var(solution_form_result)
-    print 'Skewness', stats.skew(solution_form_result)
-    print 'Kurtosis', stats.kurtosis(solution_form_result)
+    print('Mean', np.average(solution_form_result))
+    print('Variance', np.var(solution_form_result))
+    print('Skewness', stats.skew(solution_form_result))
+    print('Kurtosis', stats.kurtosis(solution_form_result))
 
-    print 'Kruskal-Wallis test'
+    print('Kruskal-Wallis test')
     h_stat, p_value = kruskalwallis(sde_result, solution_form_result)
-    print 'H Statistics', h_stat, 'P-value', p_value
+    print('H Statistics', h_stat, 'P-value', p_value)
 
     fig = plt.figure()
     sp1 = fig.add_subplot(211)

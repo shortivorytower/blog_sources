@@ -14,7 +14,7 @@ def simulate_sde_once(T, mu, sigma, S0, task_id):
     # simulate one path using discretized SDE
     dW = np.random.normal(0, np.sqrt(dt), steps)
     S[0] = S0
-    for t in xrange(0, steps):
+    for t in range(0, steps):
         # dSt = mu * St * dt + sigma * St * dWt
         dSt = mu * S[t] * dt + sigma * S[t] * dW[t]
         S[t + 1] = S[t] + dSt
@@ -31,7 +31,7 @@ def simulate_closed_form_once(T, mu, sigma, S0, task_id):
 
 def simulate_batch(count, sim_once_func):
     pool = Pool(processes=24)
-    result_array = pool.map(sim_once_func, [i for i in xrange(count)])
+    result_array = pool.map(sim_once_func, [i for i in range(count)])
     pool.close()
     pool.join()
     return np.array(result_array)
@@ -45,23 +45,23 @@ if __name__ == '__main__':
 
     count = 20000
 
-    print 'Simulating GBM SDE'
+    print('Simulating GBM SDE')
     sde_result = simulate_batch(count, partial(simulate_sde_once, T, mu, sigma, S0))
-    print 'Mean', np.average(sde_result)
-    print 'Variance', np.var(sde_result)
-    print 'Skewness', stats.skew(sde_result)
-    print 'Kurtosis', stats.kurtosis(sde_result)
+    print('Mean', np.average(sde_result))
+    print('Variance', np.var(sde_result))
+    print('Skewness', stats.skew(sde_result))
+    print('Kurtosis', stats.kurtosis(sde_result))
 
-    print 'Simulating GBM Closed Form'
+    print('Simulating GBM Closed Form')
     closed_form_result = simulate_batch(count, partial(simulate_closed_form_once, T, mu, sigma, S0))
-    print 'Mean', np.average(closed_form_result)
-    print 'Variance', np.var(closed_form_result)
-    print 'Skewness', stats.skew(closed_form_result)
-    print 'Kurtosis', stats.kurtosis(closed_form_result)
+    print('Mean', np.average(closed_form_result))
+    print('Variance', np.var(closed_form_result))
+    print('Skewness', stats.skew(closed_form_result))
+    print('Kurtosis', stats.kurtosis(closed_form_result))
 
-    print 'Kruskal-Wallis test'
+    print('Kruskal-Wallis test')
     h_stat, p_value = kruskalwallis(sde_result, closed_form_result)
-    print 'H Statistics', h_stat, 'P-value', p_value
+    print('H Statistics', h_stat, 'P-value', p_value)
 
     fig = plt.figure()
     sp1 = fig.add_subplot(211)
