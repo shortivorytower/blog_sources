@@ -40,7 +40,7 @@ if __name__ == '__main__':
 
     # given ANY state, it is always four direction left, right, up, down even they are at the edge.
     # so the probability of any direction is 1/4
-    pi_val = 0.25
+    action_prob = 0.25
     gamma = 1.0
 
     # state from 1 to 14
@@ -54,28 +54,29 @@ if __name__ == '__main__':
     k = 0
     while True:
         delta = 0.0
-        new_dict = {0: 0.0, max_state: 0.0}
+        new_V_dict = {0: 0.0, max_state: 0.0}
         for s in range(1, max_state):
             v = V_dict[s]
-            new_vs = 0.0
+            new_v = 0.0
             for a in ['l', 'r', 'u', 'd']:
-                temp = 0.0
+                exp_reward_for_action = 0.0
                 for new_state in range(0, max_state + 1):
                     reward = -1
-                    temp = temp + prob(new_state, reward, s, a) * (reward + gamma * V_dict[new_state])
-                new_vs = new_vs + pi_val * temp
+                    exp_reward_for_action += prob(new_state, reward, s, a) * (reward + gamma * V_dict[new_state])
 
-            new_dict[s] = new_vs
-            delta = max(delta, abs(v - new_vs))
+                new_v += action_prob * exp_reward_for_action
 
-        V_dict = new_dict
+            new_V_dict[s] = new_v
+            delta = max(delta, abs(v - new_v))
+
+        V_dict = new_V_dict
 
         k += 1
         if k % 50 == 0:
-            print 'iterated', k
+            print('iterated', k)
         if delta < theta:
             break
 
-    print 'Iterative Policy Evaluation Result for grid world:'
+    print('Iterative Policy Evaluation Result for grid world:')
     for s in range(0, max_state + 1):
-        print 'state', s, ':', V_dict[s]
+        print('state', s, ':', V_dict[s])
