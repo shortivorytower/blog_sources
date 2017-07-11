@@ -52,7 +52,7 @@ if __name__ == '__main__':
     for i in range(0, max_state + 1):
         state_val_dict[i] = 0.0
 
-    theta = 0.0000001
+    theta = 0.00000000001
     reward = -1
     k = 0
     while True:
