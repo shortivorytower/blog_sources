@@ -38,9 +38,7 @@ def transition_prob(new_state, reward, current_state, action):
 
 if __name__ == '__main__':
 
-    # given ANY state, it is always four direction left, right, up, down even they are at the edge.
-    # so the probability of any direction is 1/4
-    action_prob = 0.25
+    # we don't discount any future reward
     gamma = 1.0
 
     # state from 1 to 14
@@ -52,15 +50,21 @@ if __name__ == '__main__':
     for i in range(0, max_state + 1):
         state_val_dict[i] = 0.0
 
-    theta = 0.00000000001
+    theta = 0.0000001
+    # reward is always -1 for all actions (i.e. any moves)
     reward = -1
     k = 0
     while True:
         delta = 0.0
-        new_state_val_dict = {0: 0.0, max_state: 0.0}
-        for state in range(1, max_state):
+        new_state_val_dict = {}
+        for state in range(0, max_state + 1):
             v = state_val_dict[state]
             new_v = 0.0
+            # given ANY state, it is always four direction left, right, up, down even they are at the edge.
+            # The probability of any direction is 1/4
+            # Unless it is already at terminal state that the policy is doing nothing so action probability is zero.
+            action_prob = 0.25 if 0 < state < max_state else 0.0
+
             for action in ['l', 'r', 'u', 'd']:
                 exp_reward_for_action = 0.0
                 for new_state in range(0, max_state + 1):
