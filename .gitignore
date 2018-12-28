@@ -47,3 +47,5 @@ fabric.properties
 # VIM
 *.swp
 
+*.pyc
+
