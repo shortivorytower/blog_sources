@@ -63,9 +63,6 @@ class FiniteDifferenceSolver:
             a = np.zeros(layer_size)
             b = np.zeros(layer_size)
             c = np.zeros(layer_size)
-            # the "r" array in the algorithm described in 
-            # http://www.industrial-maths.com/ms6021_thomas.pdf
-            # here we name it as "d" to avoid confusion with the pde "r" term
             d = np.zeros(layer_size)
 
             # space index, 0 means at min x
