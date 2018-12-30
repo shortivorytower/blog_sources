@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.stats import norm
 from datetime import datetime
+from multiprocessing import Pool
+from functools import partial
 
 
 class BackwardParabolicPde:
@@ -33,28 +35,22 @@ class FiniteDifferenceSolver:
         # include the upper and lower boundary
         dx = (x_max - x_min) / (spacesteps + 2)
 
-        max_n = timesteps
-        max_j = spacesteps -1
-
-        # number of "vertical grid points" (i.e. X dimension) for each time step
-        layer_size = max_j + 1
-
         # clear the result storage
         solution_grid = []
 
-        # n is time index, 0 means at max t
-        for n in range(max_n+1):
-            valuation_layer = np.zeros(layer_size)
-            a = np.zeros(layer_size)
-            b = np.zeros(layer_size)
-            c = np.zeros(layer_size)
-            d = np.zeros(layer_size)
+        # n is time index, 0 means at max T
+        # we are stepping from T, T-1.. all the way to time 0.
+        for n in range(timesteps+1):
+            valuation_layer = np.zeros(spacesteps)
+            a = np.zeros(spacesteps)
+            b = np.zeros(spacesteps)
+            c = np.zeros(spacesteps)
+            d = np.zeros(spacesteps)
 
-            # space index, 0 means at min x
-            for j in range(max_j+1):
-                current_x = (x_min + dx) + j * dx
-                current_t = (max_n - n) * dt
-                prev_t = (max_n - (n-1)) * dt
+            # space index, 0 means at min X, spacesteps-1 means at max X
+            for j in range(spacesteps):
+                current_x = x_min + (j+1) * dx
+                current_t = (timesteps - n + 0.5) * dt
 
                 if n==0:
                     # at max t, the result layer is just the boundary condition at T
@@ -80,8 +76,9 @@ class FiniteDifferenceSolver:
                     prev_layer = solution_grid[-1]
 
                     # prepare the d array
-                    
-                    if j > 0 and j < max_j:
+                    prev_t = (timesteps - (n-1) + 0.5) * dt
+
+                    if j > 0 and j < spacesteps - 1:
                         # if we are in between max and min x
                         d[j] = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0) - prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx)) - prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
                     elif j == 0:
@@ -90,7 +87,7 @@ class FiniteDifferenceSolver:
                         original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_v_j_minus1 * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
                         current_v_j_minus1 = self._boundary_cond_min_X(current_t, x_min)
                         d[j] = original_d - a[j] * current_v_j_minus1
-                    elif j == max_j:
+                    elif j == spacesteps - 1:
                         # if we are at max X
                         prev_v_j_plus1 = self._boundary_cond_max_X(prev_t, x_max)
                         original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_v_j_plus1 * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
@@ -171,16 +168,51 @@ class FiniteDifferenceSolution:
         return np.interp(x0, self._x_pts, self._v_pts)
 
 
+def simulate_batch(count, sim_once_func):
+    pool = Pool(processes=24)
+    result_array = pool.map(sim_once_func, [i for i in range(count)])
+    pool.close()
+    pool.join()
+    return np.array(result_array)
+
+def simulate_sde_once(T, S0, strike, vol, risk_free, task_id):
+    np.random.seed(task_id)
+
+    mu_term = lambda t, x: risk_free 
+    # make sigma term time dependent and non linear
+    sigma_term = lambda t, x: vol if t>0.4 else vol *(1.0 - t/2.0)
+
+    steps = 250
+    dt = T / steps
+    S = np.zeros(steps + 1)
+    # simulate one path using discretized SDE
+    dW = np.random.normal(0, np.sqrt(dt), steps)
+    S[0] = S0
+    for t in range(0, steps):
+        current_t = t * dt
+        mu = mu_term(current_t, S[t])
+        sigma = sigma_term(current_t, S[t])
+        dSt = mu * S[t] * dt + sigma * S[t] * dW[t]
+        S[t + 1] = S[t] + dSt
+    return max(S[steps]-strike, 0.0)
+
 if __name__ == '__main__':
     
     risk_free = 0.05
-    vol = 0.35
+    vol = 0.45
     strike = 10.0
     tmat = 1.0
     spot = 25.0
 
+    count = 500000
+    print('Simulating GBM SDE {0} times'.format(count))
+    sde_result = simulate_batch(count, partial(simulate_sde_once, tmat, spot, strike, vol, risk_free))
+    sim_price = np.exp(-risk_free* tmat) * np.average(sde_result)
+    print('Sim Price:', sim_price)
+
     mu_term = lambda t, x: risk_free * x
-    sigma_term = lambda t, x: 0.5 * vol * vol * x * x
+    # make sigma term time dependent and non linear
+    sigma_term = lambda t, x: 0.5 * (vol **2) * (x**2) if t>0.4 else 0.5 * ((vol *(1.0 - t/2.0)) **2) * (x**2)
     r_term = lambda t, x: -risk_free
 
     pde = BackwardParabolicPde(mu_term, sigma_term, r_term)
@@ -197,10 +229,16 @@ if __name__ == '__main__':
     end_time = datetime.now()
     pde_result = solution.solution_at_t0(spot)
     print('PDE solution:', pde_result)
+    print('elapse time:', end_time - start_time)
 
+    '''
     d1 = (np.log(spot/strike) + (risk_free + 0.5 * vol * vol) * tmat)/(vol * np.sqrt(tmat))
     d2 = (np.log(spot/strike) + (risk_free - 0.5 * vol * vol) * tmat)/(vol * np.sqrt(tmat))
     call_price = spot*norm.cdf(d1) - strike * np.exp(-risk_free*tmat) * norm.cdf(d2)
     print('Close Form:', call_price)
+    '''
 
-    print('elapse time:', end_time - start_time)
+
+
+
+
