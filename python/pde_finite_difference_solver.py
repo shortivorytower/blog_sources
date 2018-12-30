@@ -32,8 +32,7 @@ class FiniteDifferenceSolver:
     
     def solve(self, x_max, x_min, t_max, timesteps, spacesteps):
         dt = t_max / timesteps
-        # include the upper and lower boundary
-        dx = (x_max - x_min) / (spacesteps + 2)
+        dx = (x_max - x_min) / (spacesteps - 1)
 
         # clear the result storage
         solution_grid = []
@@ -49,8 +48,8 @@ class FiniteDifferenceSolver:
 
             # space index, 0 means at min X, spacesteps-1 means at max X
             for j in range(spacesteps):
-                current_x = x_min + (j+1) * dx
-                current_t = (timesteps - n + 0.5) * dt
+                current_x = x_min + j * dx
+                current_t = (timesteps - n) * dt
 
                 if n==0:
                     # at max t, the result layer is just the boundary condition at T
@@ -199,11 +198,10 @@ def simulate_sde_once(T, S0, strike, vol, risk_free, task_id):
 if __name__ == '__main__':
     
     risk_free = 0.05
-    vol = 0.45
+    vol = 0.25
     strike = 10.0
     tmat = 1.0
     spot = 25.0
-
     count = 500000
     print('Simulating GBM SDE {0} times'.format(count))
     sde_result = simulate_batch(count, partial(simulate_sde_once, tmat, spot, strike, vol, risk_free))
@@ -225,7 +223,7 @@ if __name__ == '__main__':
     pde_solver = FiniteDifferenceSolver(pde, boundary_cond_T, boundary_cond_max_x, boundary_cond_min_x)
     
     start_time = datetime.now()
-    solution = pde_solver.solve(np.exp(2)*spot, np.exp(-2)*spot, tmat, 50, 9600)
+    solution = pde_solver.solve(np.exp(1)*spot, np.exp(-1)*spot, tmat, 50, 9600)
     end_time = datetime.now()
     pde_result = solution.solution_at_t0(spot)
     print('PDE solution:', pde_result)
