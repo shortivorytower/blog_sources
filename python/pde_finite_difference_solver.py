@@ -21,21 +21,6 @@ class BackwardParabolicPde:
     def r(self):
         return self._r_term
 
-
-class DriftDiffusionProcess:
-    def __init__(self, mu_term, sigma_term):
-        ''' Encapsulate the stochastic process
-        dXt = mu(t,x) dt + sigma(t,x) dWt
-        '''
-        self._mu_term = mu_term
-        self._sigma_term = sigma_term
-    @property
-    def mu(self):
-        return self._mu_term
-    @property
-    def sigma(self):
-        return self._sigma_term
-
 class FiniteDifferenceSolver:
     def __init__(self, pde, boundary_cond_T, boundary_cond_max_X, boundary_cond_min_X):
         self._pde = pde
@@ -219,4 +204,3 @@ if __name__ == '__main__':
     print('Close Form:', call_price)
 
     print('elapse time:', end_time - start_time)
-    print('error', abs(call_price - pde_result)/call_price)
