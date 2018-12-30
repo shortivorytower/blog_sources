@@ -31,7 +31,7 @@ class FiniteDifferenceSolver:
         self._boundary_cond_min_X = boundary_cond_min_X
     
     def solve(self, x_max, x_min, t_max, timesteps, spacesteps):
-        dt = t_max / timesteps
+        dt = t_max / (timesteps - 1)
         dx = (x_max - x_min) / (spacesteps - 1)
 
         # clear the result storage
@@ -39,7 +39,7 @@ class FiniteDifferenceSolver:
 
         # n is time index, 0 means at max T
         # we are stepping from T, T-1.. all the way to time 0.
-        for n in range(timesteps+1):
+        for n in range(timesteps):
             valuation_layer = np.zeros(spacesteps)
             a = np.zeros(spacesteps)
             b = np.zeros(spacesteps)
@@ -49,7 +49,7 @@ class FiniteDifferenceSolver:
             # space index, 0 means at min X, spacesteps-1 means at max X
             for j in range(spacesteps):
                 current_x = x_min + j * dx
-                current_t = (timesteps - n) * dt
+                current_t = (timesteps - 1 - n) * dt
 
                 if n==0:
                     # at max t, the result layer is just the boundary condition at T
