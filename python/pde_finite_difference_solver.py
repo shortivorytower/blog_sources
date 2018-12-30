@@ -36,14 +36,6 @@ class DriftDiffusionProcess:
     def sigma(self):
         return self._sigma_term
 
-class FeynmanKacConverter(BackwardParabolicPde):
-    def __init__(self, drift_diffusion_process, r_term):
-        BackwardParabolicPde.__init__(self, drift_diffusion_process.mu, self.__half_diffusion_square, r_term)
-        self._process = drift_diffusion_process
-
-    def __half_diffusion_square(self, t, x):
-        return 0.5 * self._process.sigma(t, x) ** 2.0
-
 class FiniteDifferenceSolver:
     def __init__(self, pde, boundary_cond_T, boundary_cond_max_X, boundary_cond_min_X):
         self._pde = pde
