@@ -30,26 +30,26 @@ class FiniteDifferenceSolver:
         self._boundary_cond_max_X = boundary_cond_max_X
         self._boundary_cond_min_X = boundary_cond_min_X
     
-    def solve(self, x_max, x_min, t_max, timesteps, spacesteps):
-        dt = t_max / (timesteps - 1)
-        dx = (x_max - x_min) / (spacesteps - 1)
+    def solve(self, x_max, x_min, t_max, steps_t, steps_x):
+        dt = t_max / (steps_t - 1)
+        dx = (x_max - x_min) / (steps_x - 1)
 
         # clear the result storage
         solution_grid = []
 
         # n is time index, 0 means at max T
         # we are stepping from T, T-1.. all the way to time 0.
-        for n in range(timesteps):
-            valuation_layer = np.zeros(spacesteps)
-            a = np.zeros(spacesteps)
-            b = np.zeros(spacesteps)
-            c = np.zeros(spacesteps)
-            d = np.zeros(spacesteps)
+        for n in range(steps_t):
+            valuation_layer = np.zeros(steps_x)
+            a = np.zeros(steps_x)
+            b = np.zeros(steps_x)
+            c = np.zeros(steps_x)
+            d = np.zeros(steps_x)
 
             # space index, 0 means at min X, spacesteps-1 means at max X
-            for j in range(spacesteps):
+            for j in range(steps_x):
                 current_x = x_min + j * dx
-                current_t = (timesteps - 1 - n) * dt
+                current_t = (steps_t - 1 - n) * dt
 
                 if n==0:
                     # at max t, the result layer is just the boundary condition at T
@@ -75,9 +75,9 @@ class FiniteDifferenceSolver:
                     prev_layer = solution_grid[-1]
 
                     # prepare the d array
-                    prev_t = (timesteps - (n-1) + 0.5) * dt
+                    prev_t = (steps_t - (n-1) + 0.5) * dt
 
-                    if j > 0 and j < spacesteps - 1:
+                    if j > 0 and j < steps_x - 1:
                         # if we are in between max and min x
                         d[j] = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0) - prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx)) - prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
                     elif j == 0:
@@ -86,7 +86,7 @@ class FiniteDifferenceSolver:
                         original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_v_j_minus1 * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
                         current_v_j_minus1 = self._boundary_cond_min_X(current_t, x_min)
                         d[j] = original_d - a[j] * current_v_j_minus1
-                    elif j == spacesteps - 1:
+                    elif j == steps_x - 1:
                         # if we are at max X
                         prev_v_j_plus1 = self._boundary_cond_max_X(prev_t, x_max)
                         original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_v_j_plus1 * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
