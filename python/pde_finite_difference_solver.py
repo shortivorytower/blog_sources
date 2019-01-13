@@ -37,7 +37,7 @@ class FiniteDifferenceSolver:
         # clear the result storage
         solution_grid = []
 
-        # n is time index, 0 means at max T
+        # n is time index, 0 means at max Tr
         # we are stepping from T, T-1.. all the way to time 0.
         for n in range(steps_t):
             valuation_layer = np.zeros(steps_x)
@@ -54,6 +54,13 @@ class FiniteDifferenceSolver:
                 if n==0:
                     # at max t, the result layer is just the boundary condition at T
                     valuation_layer[j] = self._boundary_cond_T(current_t, current_x)
+
+                # ... we should handle j==0 and j== steps_x -1 here instead of putting it somewhere below.????
+                elif j==0:
+                    pass
+                elif j==steps_x-1:
+                    pass
+
                 else:
                     # if we are not at max t, we need to get the mu / sigma / r terms 
                     # and solve the tridiagonal matrix problem
@@ -66,10 +73,12 @@ class FiniteDifferenceSolver:
                     sigma = sigma_func(current_t, current_x)
                     r = r_func(current_t, current_x)
 
+                    sigma_sq = sigma * sigma
+
                     # fill in a, b, c arrays
-                    a[j] = -mu / (4.0 * dx) + sigma / (2.0 * dx * dx)
-                    b[j] = -1.0 / dt - sigma / (dx * dx) + r / 2.0
-                    c[j] = mu / (4.0 * dx) + sigma / (2.0 * dx * dx)
+                    a[j] = -mu / (4.0 * dx) + sigma_sq / (4.0 * dx * dx)
+                    b[j] = 1.0 / dt - sigma_sq / (2.0* dx * dx) - r / 2.0
+                    c[j] = mu / (4.0 * dx) + sigma_sq / (4.0 * dx * dx)
 
                     # get the last computed layer, in fact we don't need to keep all layers
                     prev_layer = solution_grid[-1]
@@ -77,19 +86,20 @@ class FiniteDifferenceSolver:
                     # prepare the d array
                     prev_t = (steps_t - (n-1) + 0.5) * dt
 
+
                     if j > 0 and j < steps_x - 1:
                         # if we are in between max and min x
-                        d[j] = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0) - prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx)) - prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
+                        d[j] = prev_layer[j-1] * (mu/(4.0*dx) - sigma_sq / (4.0 * dx * dx)) + prev_layer[j] * (1.0 / dt + sigma_sq / (2.0* dx*dx) + r/2.0) + prev_layer[j+1] * (-mu/(4.0*dx) - sigma_sq / (4.0 * dx*dx))
                     elif j == 0:
                         # if we are at min x
                         prev_v_j_minus1 = self._boundary_cond_min_X(prev_t, x_min)
-                        original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_v_j_minus1 * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
+                        original_d = prev_v_j_minus1 * (mu/(4.0*dx) - sigma_sq / (4.0 * dx * dx)) + prev_layer[j] * (1.0 / dt + sigma_sq / (2.0* dx*dx) + r/2.0) +prev_layer[j+1] * (-mu/(4.0*dx) - sigma_sq / (4.0 * dx*dx))
                         current_v_j_minus1 = self._boundary_cond_min_X(current_t, x_min)
                         d[j] = original_d - a[j] * current_v_j_minus1
                     elif j == steps_x - 1:
                         # if we are at max X
                         prev_v_j_plus1 = self._boundary_cond_max_X(prev_t, x_max)
-                        original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_v_j_plus1 * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
+                        original_d = prev_layer[j-1] * (mu/(4.0*dx) - sigma_sq / (4.0 * dx * dx)) +prev_layer[j] * (1.0 / dt + sigma_sq / (2.0* dx*dx) + r/2.0) + prev_v_j_plus1 * (-mu/(4.0*dx) - sigma_sq / (4.0 * dx*dx))
                         current_v_j_plus1 = self._boundary_cond_max_X(current_t, t_max)
                         d[j] = original_d - c[j] * current_v_j_plus1
             
@@ -197,20 +207,24 @@ def simulate_sde_once(T, S0, strike, vol, risk_free, task_id):
 
 if __name__ == '__main__':
     
-    risk_free = 0.05
-    vol = 0.25
-    strike = 10.0
-    tmat = 1.0
-    spot = 25.0
+    risk_free = 0.01
+    vol = 0.4
+    strike = 5.5
+    tmat = 1.9
+    spot = 5.0
+    mu = 0.2
+    '''
     count = 500000
     print('Simulating GBM SDE {0} times'.format(count))
     sde_result = simulate_batch(count, partial(simulate_sde_once, tmat, spot, strike, vol, risk_free))
     sim_price = np.exp(-risk_free* tmat) * np.average(sde_result)
     print('Sim Price:', sim_price)
+    '''
 
-    mu_term = lambda t, x: risk_free * x
+    mu_term = lambda t, x: mu * x
     # make sigma term time dependent and non linear
-    sigma_term = lambda t, x: 0.5 * (vol **2) * (x**2) if t>0.4 else 0.5 * ((vol *(1.0 - t/2.0)) **2) * (x**2)
+    #sigma_term = lambda t, x: 0.5 * (vol **2) * (x**2) if t>0.4 else 0.5 * ((vol *(1.0 - t/2.0)) **2) * (x**2)
+    sigma_term = lambda t, x: vol*x
     r_term = lambda t, x: -risk_free
 
     pde = BackwardParabolicPde(mu_term, sigma_term, r_term)
@@ -223,7 +237,7 @@ if __name__ == '__main__':
     pde_solver = FiniteDifferenceSolver(pde, boundary_cond_T, boundary_cond_max_x, boundary_cond_min_x)
     
     start_time = datetime.now()
-    solution = pde_solver.solve(np.exp(1)*spot, np.exp(-1)*spot, tmat, 50, 9600)
+    solution = pde_solver.solve(9.0, 5.0, tmat, 20, 5)
     end_time = datetime.now()
     pde_result = solution.solution_at_t0(spot)
     print('PDE solution:', pde_result)
