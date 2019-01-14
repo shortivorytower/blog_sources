@@ -166,7 +166,7 @@ class FiniteDifferenceSolution:
             return self._boundary_cond_max_X(0.0, x0)
         return np.interp(x0, self._x_pts, self._v_pts)
 
-
+'''
 def simulate_batch(count, sim_once_func):
     pool = Pool(processes=24)
     result_array = pool.map(sim_once_func, [i for i in range(count)])
@@ -194,24 +194,30 @@ def simulate_sde_once(T, S0, strike, vol, risk_free, task_id):
         dSt = mu * S[t] * dt + sigma * S[t] * dW[t]
         S[t + 1] = S[t] + dSt
     return max(S[steps]-strike, 0.0)
+'''
 
 if __name__ == '__main__':
     
     risk_free = 0.05
-    vol = 0.25
-    strike = 10.0
+    vol = 0.4
+    strike = 35.0
     tmat = 1.0
-    spot = 25.0
+    spot = 34.0
+
+    '''
     count = 500000
     print('Simulating GBM SDE {0} times'.format(count))
     sde_result = simulate_batch(count, partial(simulate_sde_once, tmat, spot, strike, vol, risk_free))
     sim_price = np.exp(-risk_free* tmat) * np.average(sde_result)
     print('Sim Price:', sim_price)
+    '''
 
     mu_term = lambda t, x: risk_free * x
     # make sigma term time dependent and non linear
-    sigma_term = lambda t, x: 0.5 * (vol **2) * (x**2) if t>0.4 else 0.5 * ((vol *(1.0 - t/2.0)) **2) * (x**2)
+    #sigma_term = lambda t, x: 0.5 * (vol **2) * (x**2) if t>0.4 else 0.5 * ((vol *(1.0 - t/2.0)) **2) * (x**2)
+    sigma_term = lambda t,x: 0.5 * vol * vol * x *x
     r_term = lambda t, x: -risk_free
+
 
     pde = BackwardParabolicPde(mu_term, sigma_term, r_term)
 
@@ -223,18 +229,18 @@ if __name__ == '__main__':
     pde_solver = FiniteDifferenceSolver(pde, boundary_cond_T, boundary_cond_max_x, boundary_cond_min_x)
     
     start_time = datetime.now()
-    solution = pde_solver.solve(np.exp(1)*spot, np.exp(-1)*spot, tmat, 50, 9600)
+    solution = pde_solver.solve(np.exp(3)*spot, np.exp(-3)*spot, tmat, 50, 9600)
     end_time = datetime.now()
     pde_result = solution.solution_at_t0(spot)
     print('PDE solution:', pde_result)
     print('elapse time:', end_time - start_time)
 
-    '''
+
     d1 = (np.log(spot/strike) + (risk_free + 0.5 * vol * vol) * tmat)/(vol * np.sqrt(tmat))
     d2 = (np.log(spot/strike) + (risk_free - 0.5 * vol * vol) * tmat)/(vol * np.sqrt(tmat))
     call_price = spot*norm.cdf(d1) - strike * np.exp(-risk_free*tmat) * norm.cdf(d2)
     print('Close Form:', call_price)
-    '''
+
 
 
 
