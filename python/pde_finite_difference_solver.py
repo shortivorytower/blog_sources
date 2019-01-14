@@ -32,12 +32,12 @@ class FiniteDifferenceSolver:
     
     def solve(self, x_max, x_min, t_max, steps_t, steps_x):
         dt = t_max / (steps_t - 1)
-        dx = (x_max - x_min) / (steps_x - 1)
+        dx = (x_max - x_min) / (steps_x +1)
 
         # clear the result storage
         solution_grid = []
 
-        # n is time index, 0 means at max T
+        # n is time index, at 0 means t = t_max, at steps_t - 1 means t = 0
         # we are stepping from T, T-1.. all the way to time 0.
         for n in range(steps_t):
             valuation_layer = np.zeros(steps_x)
@@ -46,12 +46,12 @@ class FiniteDifferenceSolver:
             c = np.zeros(steps_x)
             d = np.zeros(steps_x)
 
-            # space index, 0 means at min X, spacesteps-1 means at max X
+            # space index, at j = 0 means x = x_min + dx, j =spacesteps-1 means x = x_max - dx
             for j in range(steps_x):
-                current_x = x_min + j * dx
+                current_x = x_min + (j+1) * dx
                 current_t = (steps_t - 1 - n) * dt
 
-                if n==0:
+                if n == 0:
                     # at max t, the result layer is just the boundary condition at T
                     valuation_layer[j] = self._boundary_cond_T(current_t, current_x)
                 else:
@@ -75,7 +75,7 @@ class FiniteDifferenceSolver:
                     prev_layer = solution_grid[-1]
 
                     # prepare the d array
-                    prev_t = (steps_t - (n-1) + 0.5) * dt
+                    prev_t = (steps_t - 1 - (n-1)) * dt
 
                     if j > 0 and j < steps_x - 1:
                         # if we are in between max and min x
@@ -199,8 +199,8 @@ def simulate_sde_once(T, S0, strike, vol, risk_free, task_id):
 if __name__ == '__main__':
     
     risk_free = 0.05
-    vol = 0.4
-    strike = 35.0
+    vol = 0.35
+    strike = 33.0
     tmat = 1.0
     spot = 34.0
 
@@ -223,26 +223,19 @@ if __name__ == '__main__':
 
     # specify call payoff boundary condition
     boundary_cond_T = lambda t, x: max(x - strike, 0.0)
-    boundary_cond_max_x = lambda t, x: np.exp(-risk_free * t) * max(x-strike, 0.0)
-    boundary_cond_min_x = lambda t, x: np.exp(-risk_free * t) * max(x-strike, 0.0)
+    boundary_cond_max_x = lambda t, x: np.exp(-risk_free * t) * boundary_cond_T(t,x)
+    boundary_cond_min_x = lambda t, x: np.exp(-risk_free * t) * boundary_cond_T(t,x)
 
     pde_solver = FiniteDifferenceSolver(pde, boundary_cond_T, boundary_cond_max_x, boundary_cond_min_x)
     
     start_time = datetime.now()
-    solution = pde_solver.solve(np.exp(3)*spot, np.exp(-3)*spot, tmat, 50, 9600)
+    solution = pde_solver.solve(np.exp(4)*spot, np.exp(-4)*spot, tmat, 50, 25000)
     end_time = datetime.now()
     pde_result = solution.solution_at_t0(spot)
     print('PDE solution:', pde_result)
     print('elapse time:', end_time - start_time)
 
-
     d1 = (np.log(spot/strike) + (risk_free + 0.5 * vol * vol) * tmat)/(vol * np.sqrt(tmat))
     d2 = (np.log(spot/strike) + (risk_free - 0.5 * vol * vol) * tmat)/(vol * np.sqrt(tmat))
     call_price = spot*norm.cdf(d1) - strike * np.exp(-risk_free*tmat) * norm.cdf(d2)
     print('Close Form:', call_price)
-
-
-
-
-
-
