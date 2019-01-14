@@ -41,10 +41,12 @@ class FiniteDifferenceSolver:
         # we are stepping from T, T-1.. all the way to time 0.
         for n in range(steps_t):
             valuation_layer = np.zeros(steps_x)
-            a = np.zeros(steps_x)
-            b = np.zeros(steps_x)
-            c = np.zeros(steps_x)
-            d = np.zeros(steps_x)
+
+            # we don't use the element at index 0.
+            a = np.zeros(steps_x-2)
+            b = np.zeros(steps_x-2)
+            c = np.zeros(steps_x-2)
+            d = np.zeros(steps_x-2)
 
             # space index, 0 means at min X, spacesteps-1 means at max X
             for j in range(steps_x):
@@ -75,18 +77,26 @@ class FiniteDifferenceSolver:
                     r = r_func(current_t, current_x)
 
                     sigma_sq = sigma * sigma
-
-                    # more to fix we need to fix the indices...
-
-
+                    dx_sq = dx * dx
 
                     # fill in a, b, c arrays
-                    a[j] = -mu / (4.0 * dx) + sigma_sq / (4.0 * dx * dx)
-                    b[j] = 1.0 / dt - sigma_sq / (2.0* dx * dx) - r / 2.0
-                    c[j] = mu / (4.0 * dx) + sigma_sq / (4.0 * dx * dx)
+                    a[j] = -mu / (4.0 * dx) + sigma_sq / (4.0 * dx_sq)
+                    b[j] = 1.0 / dt - sigma_sq / (2.0* dx_sq) - r / 2.0
+                    c[j] = mu / (4.0 * dx) + sigma_sq / (4.0 * dx_sq)
 
                     # get the last computed layer, in fact we don't need to keep all layers
                     prev_layer = solution_grid[-1]
+
+                    # MORE TO DO..
+                    if j==1:
+                        pass
+                    elif j==steps_x-2:
+                        pass
+                    else:
+                        pass
+
+
+
 
                     # prepare the d array
                     prev_t = (steps_t - (n-1) + 0.5) * dt
