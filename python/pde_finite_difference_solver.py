@@ -68,7 +68,7 @@ class FiniteDifferenceSolver:
 
                     # fill in a, b, c arrays
                     a[j] = -mu / (4.0 * dx) + sigma / (2.0 * dx * dx)
-                    b[j] = -1.0 / dt - sigma / (dx * dx) + r / 2.0
+                    b[j] = -1.0 / dt - sigma / (dx * dx) - r / 2.0
                     c[j] = mu / (4.0 * dx) + sigma / (2.0 * dx * dx)
 
                     # get the last computed layer, in fact we don't need to keep all layers
@@ -79,17 +79,17 @@ class FiniteDifferenceSolver:
 
                     if j > 0 and j < steps_x - 1:
                         # if we are in between max and min x
-                        d[j] = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0) - prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx)) - prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
+                        d[j] = prev_layer[j-1] * (mu/(4.0*dx) - sigma / (2.0 * dx * dx)) + prev_layer[j] * (-1.0 / dt + sigma / (dx*dx) + r/2.0) + prev_layer[j+1] * (-mu/(4.0*dx) - sigma / (2.0 * dx*dx))
                     elif j == 0:
                         # if we are at min x
                         prev_v_j_minus1 = self._boundary_cond_min_X(prev_t, x_min)
-                        original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_layer[j+1] * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_v_j_minus1 * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
+                        original_d = prev_v_j_minus1 * (mu/(4.0*dx) - sigma / (2.0 * dx * dx)) + prev_layer[j] * (-1.0 / dt + sigma / (dx*dx) + r/2.0) + prev_layer[j+1] * (-mu/(4.0*dx) - sigma / (2.0 * dx*dx))
                         current_v_j_minus1 = self._boundary_cond_min_X(current_t, x_min)
                         d[j] = original_d - a[j] * current_v_j_minus1
                     elif j == steps_x - 1:
                         # if we are at max X
                         prev_v_j_plus1 = self._boundary_cond_max_X(prev_t, x_max)
-                        original_d = -prev_layer[j] * (1.0 / dt - sigma / (dx*dx) + r/2.0)-prev_v_j_plus1 * (mu/(4.0*dx) + sigma / (2.0 * dx*dx))-prev_layer[j-1] * (-mu/(4.0*dx) + sigma / (2.0 * dx * dx))
+                        original_d = prev_layer[j-1] * (mu/(4.0*dx) - sigma / (2.0 * dx * dx)) + prev_layer[j] * (-1.0 / dt + sigma / (dx*dx) + r/2.0) + prev_v_j_plus1 * (-mu/(4.0*dx) - sigma / (2.0 * dx*dx))
                         current_v_j_plus1 = self._boundary_cond_max_X(current_t, t_max)
                         d[j] = original_d - c[j] * current_v_j_plus1
             
@@ -216,7 +216,7 @@ if __name__ == '__main__':
     # make sigma term time dependent and non linear
     #sigma_term = lambda t, x: 0.5 * (vol **2) * (x**2) if t>0.4 else 0.5 * ((vol *(1.0 - t/2.0)) **2) * (x**2)
     sigma_term = lambda t,x: 0.5 * vol * vol * x *x
-    r_term = lambda t, x: -risk_free
+    r_term = lambda t, x: risk_free
 
 
     pde = BackwardParabolicPde(mu_term, sigma_term, r_term)
