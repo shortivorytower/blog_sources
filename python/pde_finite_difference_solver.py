@@ -217,7 +217,7 @@ if __name__ == '__main__':
     strike = 5.5
     tmat = 1.9
     spot = 5.0
-    mu = 0.2
+    mu = 0.01
     '''
     count = 500000
     print('Simulating GBM SDE {0} times'.format(count))
@@ -236,13 +236,15 @@ if __name__ == '__main__':
 
     # specify call payoff boundary condition
     boundary_cond_T = lambda t, x: max(x - strike, 0.0)
-    boundary_cond_max_x = lambda t, x: np.exp(-risk_free * t) * max(x-strike, 0.0)
-    boundary_cond_min_x = lambda t, x: np.exp(-risk_free * t) * max(x-strike, 0.0)
+    #boundary_cond_max_x = lambda t, x: np.exp(-risk_free * t) * max(x-strike, 0.0)
+    #boundary_cond_min_x = lambda t, x: np.exp(-risk_free * t) * max(x-strike, 0.0)
+    boundary_cond_max_x = lambda t, x:  max(x-strike, 0.0)
+    boundary_cond_min_x = lambda t, x: max(x-strike, 0.0)
 
     pde_solver = FiniteDifferenceSolver(pde, boundary_cond_T, boundary_cond_max_x, boundary_cond_min_x)
     
     start_time = datetime.now()
-    solution = pde_solver.solve(9.0, 5.0, tmat, 20, 5)
+    solution = pde_solver.solve(9.0, 5.0, tmat, 50, 500)
     end_time = datetime.now()
     pde_result = solution.solution_at_t0(spot)
     print('PDE solution:', pde_result)
