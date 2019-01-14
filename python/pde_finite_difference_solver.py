@@ -54,15 +54,16 @@ class FiniteDifferenceSolver:
                 if n==0:
                     # at max t, the result layer is just the boundary condition at T
                     valuation_layer[j] = self._boundary_cond_T(current_t, current_x)
-
-                # ... we should handle j==0 and j== steps_x -1 here instead of putting it somewhere below.????
                 elif j==0:
-                    pass
+                    # at min x,
+                    valuation_layer[j] = self._boundary_cond_min_X(current_t, current_x)
                 elif j==steps_x-1:
-                    pass
+                    # at max x
+                    valuation_layer[j] = self._boundary_cond_max_X(current_t, current_x)
 
                 else:
-                    # if we are not at max t, we need to get the mu / sigma / r terms 
+
+                    # if we are not at max t, we need to get the mu / sigma / r terms
                     # and solve the tridiagonal matrix problem
                     mu_func = self._pde.mu
                     sigma_func = self._pde.sigma
@@ -74,6 +75,10 @@ class FiniteDifferenceSolver:
                     r = r_func(current_t, current_x)
 
                     sigma_sq = sigma * sigma
+
+                    # more to fix we need to fix the indices...
+
+
 
                     # fill in a, b, c arrays
                     a[j] = -mu / (4.0 * dx) + sigma_sq / (4.0 * dx * dx)
