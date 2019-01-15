@@ -1,9 +1,12 @@
 import numpy as np
 from scipy.stats import norm
-from datetime import datetime
-from multiprocessing import Pool
-from functools import partial
 
+# these packages are required only for testing.
+from datetime import datetime
+from mpl_toolkits.mplot3d import Axes3D
+import matplotlib.pyplot as plt
+from matplotlib import cm
+import pandas as pd
 
 class BackwardParabolicPde:
     def __init__(self, mu_term, sigma_term, r_term):
@@ -90,7 +93,7 @@ class FiniteDifferenceSolver:
                         # if we are at max X
                         prev_v_j_plus1 = self._boundary_cond_max_X(prev_t, x_max)
                         original_d = prev_layer[j-1] * (mu/(4.0*dx) - sigma / (2.0 * dx * dx)) + prev_layer[j] * (-1.0 / dt + sigma / (dx*dx) + r/2.0) + prev_v_j_plus1 * (-mu/(4.0*dx) - sigma / (2.0 * dx*dx))
-                        current_v_j_plus1 = self._boundary_cond_max_X(current_t, t_max)
+                        current_v_j_plus1 = self._boundary_cond_max_X(current_t, x_max)
                         d[j] = original_d - c[j] * current_v_j_plus1
             
             # now a, b, c, d arrays are all ready
@@ -102,7 +105,8 @@ class FiniteDifferenceSolver:
             solution_grid.append(valuation_layer)
         
         # return the solution object.
-        return FiniteDifferenceSolution(solution_grid, x_max, x_min, t_max, dt, dx, self._boundary_cond_max_X, self._boundary_cond_min_X)
+        return FiniteDifferenceSolution(solution_grid, x_max, x_min, t_max, dt, dx, steps_t, steps_x,
+                                        self._boundary_cond_max_X, self._boundary_cond_min_X)
 
 
     def solve_tridiagonal_matrix(self, a, b, c, r):
@@ -135,101 +139,69 @@ class FiniteDifferenceSolver:
 
 # helper class to locate the actual PDE value at T0
 class FiniteDifferenceSolution:
-    def __init__(self, solution_grid, x_max, x_min, t_max, dt, dx, boundary_cond_max_X, boundary_cond_min_X):
+    def __init__(self, solution_grid, x_max, x_min, t_max, dt, dx, steps_t, steps_x, boundary_cond_max_X, boundary_cond_min_X):
         self._boundary_cond_max_X = boundary_cond_max_X
         self._boundary_cond_min_X = boundary_cond_min_X
         self._x_max = x_max
         self._x_min = x_min
+        self._solution_grid = solution_grid
+        self._dt = dt
+        self._dx = dx
+        self._steps_t = steps_t
+        self._steps_x = steps_x
+        self._t_max = t_max
 
-        v_min = self._boundary_cond_min_X(0.0, x_min)
-        v_max = self._boundary_cond_max_X(0.0, x_max)
-        grid_at_t0 = solution_grid[-1]
+    def solution_at_t0(self, x0):
+        grid_at_t0 = self._solution_grid[-1]
 
         # fill in the arrays of X and V points and then perform linear interpolation.
-        v_pts = np.zeros(len(grid_at_t0)+2)
-        x_pts = np.zeros(len(grid_at_t0)+2)
-        x_pts[0] = x_min
-        v_pts[0] = v_min
-        x_pts[-1] = x_max
-        v_pts[-1] = v_max
-        for i in range(1, len(v_pts)-1):
-            x_pts[i] = x_min + dx * i
-            v_pts[i] = grid_at_t0[i-1]
-        
-        self._x_pts = x_pts
-        self._v_pts = v_pts
-    
-    def solution_at_t0(self, x0):
+        v_pts = np.zeros(len(grid_at_t0))
+        x_pts = np.zeros(len(grid_at_t0))
+        for j in range(len(v_pts)):
+            x_pts[j] = self.convert_j_to_x(j)
+            v_pts[j] = grid_at_t0[j]
+
         if x0<=self._x_min:
             return self._boundary_cond_min_X(0.0, x0)
         elif x0>=self._x_max:
             return self._boundary_cond_max_X(0.0, x0)
-        return np.interp(x0, self._x_pts, self._v_pts)
+        return np.interp(x0, x_pts, v_pts)
 
-'''
-def simulate_batch(count, sim_once_func):
-    pool = Pool(processes=24)
-    result_array = pool.map(sim_once_func, [i for i in range(count)])
-    pool.close()
-    pool.join()
-    return np.array(result_array)
+    @property
+    def solution_grid(self):
+        return self._solution_grid
 
-def simulate_sde_once(T, S0, strike, vol, risk_free, task_id):
-    np.random.seed(task_id)
+    def convert_n_to_t(self, n):
+        return (self._steps_t -1 - n) * self._dt
 
-    mu_term = lambda t, x: risk_free 
-    # make sigma term time dependent and non linear
-    sigma_term = lambda t, x: vol if t>0.4 else vol *(1.0 - t/2.0)
+    def convert_j_to_x(self, j):
+        return self._x_min + (j+1)*self._dx
 
-    steps = 250
-    dt = T / steps
-    S = np.zeros(steps + 1)
-    # simulate one path using discretized SDE
-    dW = np.random.normal(0, np.sqrt(dt), steps)
-    S[0] = S0
-    for t in range(0, steps):
-        current_t = t * dt
-        mu = mu_term(current_t, S[t])
-        sigma = sigma_term(current_t, S[t])
-        dSt = mu * S[t] * dt + sigma * S[t] * dW[t]
-        S[t + 1] = S[t] + dSt
-    return max(S[steps]-strike, 0.0)
-'''
+
 
 if __name__ == '__main__':
     
-    risk_free = 0.05
-    vol = 0.35
-    strike = 33.0
+    risk_free = 0.01
+    vol = 0.4
+    strike = 5.5
     tmat = 1.0
-    spot = 34.0
-
-    '''
-    count = 500000
-    print('Simulating GBM SDE {0} times'.format(count))
-    sde_result = simulate_batch(count, partial(simulate_sde_once, tmat, spot, strike, vol, risk_free))
-    sim_price = np.exp(-risk_free* tmat) * np.average(sde_result)
-    print('Sim Price:', sim_price)
-    '''
+    spot = 5.0
 
     mu_term = lambda t, x: risk_free * x
-    # make sigma term time dependent and non linear
-    #sigma_term = lambda t, x: 0.5 * (vol **2) * (x**2) if t>0.4 else 0.5 * ((vol *(1.0 - t/2.0)) **2) * (x**2)
     sigma_term = lambda t,x: 0.5 * vol * vol * x *x
     r_term = lambda t, x: risk_free
-
 
     pde = BackwardParabolicPde(mu_term, sigma_term, r_term)
 
     # specify call payoff boundary condition
     boundary_cond_T = lambda t, x: max(x - strike, 0.0)
-    boundary_cond_max_x = lambda t, x: np.exp(-risk_free * t) * boundary_cond_T(t,x)
-    boundary_cond_min_x = lambda t, x: np.exp(-risk_free * t) * boundary_cond_T(t,x)
+    boundary_cond_max_x = lambda t, x: np.exp(-risk_free * (tmat-t)) * boundary_cond_T(t,x)
+    boundary_cond_min_x = lambda t, x: np.exp(-risk_free * (tmat-t)) * boundary_cond_T(t,x)
 
     pde_solver = FiniteDifferenceSolver(pde, boundary_cond_T, boundary_cond_max_x, boundary_cond_min_x)
     
     start_time = datetime.now()
-    solution = pde_solver.solve(np.exp(4)*spot, np.exp(-4)*spot, tmat, 50, 25000)
+    solution = pde_solver.solve(10, 0, tmat, 50, 200)
     end_time = datetime.now()
     pde_result = solution.solution_at_t0(spot)
     print('PDE solution:', pde_result)
@@ -239,3 +211,23 @@ if __name__ == '__main__':
     d2 = (np.log(spot/strike) + (risk_free - 0.5 * vol * vol) * tmat)/(vol * np.sqrt(tmat))
     call_price = spot*norm.cdf(d1) - strike * np.exp(-risk_free*tmat) * norm.cdf(d2)
     print('Close Form:', call_price)
+
+    t_list = []
+    x_list = []
+    v_list = []
+    for n in range(len(solution.solution_grid)):
+        for j in range(len(solution.solution_grid[n])):
+            t_list.append(solution.convert_n_to_t(n))
+            x_list.append(solution.convert_j_to_x(j))
+            v_list.append(solution.solution_grid[n][j])
+
+    df = pd.DataFrame({'x': x_list, 't': t_list, 'V': v_list})
+
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.set_zlabel('V', fontsize=16)
+    ax.set_xlabel('x', fontsize=16)
+    ax.set_ylabel('t', fontsize=16)
+    surf = ax.plot_trisurf(df.x, df.t, df.V, cmap=cm.jet, linewidth=0.1)
+    fig.colorbar(surf, shrink=0.5, aspect=5)
+    plt.show()
