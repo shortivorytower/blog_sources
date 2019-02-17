@@ -1,18 +1,7 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-import math
-
-
-
-def frank_copula(u_vector, theta):
-    n = len(u_vector)
-    if n < 2:
-        raise ValueError('Number of random variables must be >= 2')
-    if math.isclose(theta, 0.0):
-        raise ValueError('Theta equals 0 is not yet implemented')
-
-    terms = np.vectorize(lambda u: np.exp(-theta * u) - 1.0)(u_vector)
-    return -1.0 / theta * np.log(1.0 + np.prod(terms) / np.power(np.exp(-theta) - 1.0, n - 1))
+import seaborn as sns
 
 def frank_copula_pdf_inverse(u, theta, t):
     return -1.0 / theta * np.log(((t - 1) * np.exp(-theta * u) - t * np.exp(-theta)) / ((t - 1) * np.exp(-theta * u) - t))
@@ -26,15 +15,27 @@ def generate_frank_copula_2d(theta, sim_count=50):
 
 if __name__ == '__main__':
 
-    theta = 5.0
-
-    print(frank_copula([0.1, 0.5], theta))
-
     np.random.seed(1)
-    sim_count = 1000
-    sim_result = generate_frank_copula_2d(theta, sim_count)
+    sim_count = 500
 
-    plt.plot(sim_result[0], sim_result[1], 'r+')
-    plt.axis([0,1,0,1])
+    u_col = np.array([], dtype=np.float32)
+    v_col = np.array([], dtype=np.float32)
+    theta_col = np.array([], dtype=np.float32)
+
+    thetas = [-10.0, 1.0, 5.0, 10.0]
+
+    for theta in thetas:
+        sim_result = generate_frank_copula_2d(theta, sim_count)
+        theta_col = np.append(theta_col, np.full_like(sim_result[0], theta))
+        u_col = np.append(u_col, sim_result[0])
+        v_col = np.append(v_col, sim_result[1])
+
+    df = pd.DataFrame({'Theta': theta_col, 'U': u_col, 'V': v_col})
+
+    sns.set(style='ticks')
+    g = sns.FacetGrid(df, col='Theta', margin_titles=True, col_wrap=4, size=2.5)
+    g.map(plt.scatter, 'U', 'V', s=1)
+    g.set(xlim=(0, 1), ylim=(0, 1))
+    g.fig.suptitle('Frank Copula')
     plt.show()
 
