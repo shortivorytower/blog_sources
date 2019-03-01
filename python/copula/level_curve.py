@@ -11,7 +11,7 @@ def level_curve(generator_func, inverted_generator_func, u, t):
 
 if __name__ == '__main__':
     theta = 2
-    u_list = np.arange(0.01, 1, 0.0001)
+    u_list = np.arange(0.0001, 1, 0.00001)
 
     clayton_generator = lambda t: np.power(t, -theta) - 1
     clayton_inverted_generator = lambda s: np.power(1.0 + s, -1.0 / theta)
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         axs[1].grid()
 
         gumbel_v_list = level_curve(gumbel_generator, gumbel_inverted_generator, u_list, t)
-        axs[2].plot(u_list, frank_v_list, label='t={0:0.0}'.format(t))
+        axs[2].plot(u_list, gumbel_v_list, label='t={0:0.0}'.format(t))
         axs[2].set_title('Gumbel Copula Level Curves')
         axs[2].axis([0, 1, 0, 1])
         axs[2].grid()
