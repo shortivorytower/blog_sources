@@ -19,7 +19,10 @@ if __name__ == '__main__':
     frank_generator = lambda t: -np.log((np.exp(-theta * t) - 1) / (np.exp(-theta) - 1))
     frank_inverted_generator = lambda s: -1.0 / theta * np.log(np.exp(-s) * (np.exp(-theta) - 1) + 1)
 
-    fig, axs = plt.subplots(1, 2, figsize=(8, 4))
+    gumbel_generator = lambda u: np.power(-np.log(u), theta)
+    gumbel_inverted_generator = lambda y: np.exp(-np.power(y, 1.0 / theta))
+
+    fig, axs = plt.subplots(1, 3, figsize=(8, 4))
 
     # plot clayton
     for t in np.arange(0.1, 1, 0.1):
@@ -34,5 +37,11 @@ if __name__ == '__main__':
         axs[1].set_title('Frank Copula Level Curves')
         axs[1].axis([0, 1, 0, 1])
         axs[1].grid()
+
+        gumbel_v_list = level_curve(gumbel_generator, gumbel_inverted_generator, u_list, t)
+        axs[2].plot(u_list, frank_v_list, label='t={0:0.0}'.format(t))
+        axs[2].set_title('Gumbel Copula Level Curves')
+        axs[2].axis([0, 1, 0, 1])
+        axs[2].grid()
 
     plt.show()
