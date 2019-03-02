@@ -26,20 +26,23 @@ if __name__ == '__main__':
 
     # plot clayton
     for t in np.arange(0.1, 1, 0.1):
+        # larger t will have darker line
+        line_color = (0.7, 0.05, 0.4, t / 1.3 + 0.2)
+
         clayton_v_list = level_curve(clayton_generator, clayton_inverted_generator, u_list, t)
-        axs[0].plot(u_list, clayton_v_list, label='t={0:0.0}'.format(t))
+        axs[0].plot(u_list, clayton_v_list, label='t={0:0.0}'.format(t), color=line_color, linewidth=2)
         axs[0].set_title('Clayton Copula Level Curves')
         axs[0].axis([0, 1, 0, 1])
         axs[0].grid()
 
         frank_v_list = level_curve(frank_generator, frank_inverted_generator, u_list, t)
-        axs[1].plot(u_list, frank_v_list, label='t={0:0.0}'.format(t))
+        axs[1].plot(u_list, frank_v_list, label='t={0:0.0}'.format(t), color=line_color, linewidth=2)
         axs[1].set_title('Frank Copula Level Curves')
         axs[1].axis([0, 1, 0, 1])
         axs[1].grid()
 
         gumbel_v_list = level_curve(gumbel_generator, gumbel_inverted_generator, u_list, t)
-        axs[2].plot(u_list, gumbel_v_list, label='t={0:0.0}'.format(t))
+        axs[2].plot(u_list, gumbel_v_list, label='t={0:0.0}'.format(t), color=line_color, linewidth=2)
         axs[2].set_title('Gumbel Copula Level Curves')
         axs[2].axis([0, 1, 0, 1])
         axs[2].grid()
