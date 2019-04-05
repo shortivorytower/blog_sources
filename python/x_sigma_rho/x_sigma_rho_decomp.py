@@ -109,7 +109,7 @@ def x_sigma_rho_decomposition(hsbc_weight, zijin_mining_weight, model):
 
     print('********** X Sigma Rho Decomposition **********')
     print()
-    print('Portfolio weights: HSBC = {0:.4f}%, Zijin Mining = {1:.4f}%'.format(hsbc_weight, zijin_mining_weight))
+    print('Portfolio weights: HSBC = {0:.4f}%, Zijin Mining = {1:.4f}%'.format(hsbc_weight * 100, zijin_mining_weight * 100))
     print()
 
     # portfolio weight vector (h)
