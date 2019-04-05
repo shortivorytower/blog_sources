@@ -43,24 +43,29 @@ if __name__ == '__main__':
 
     factors_correlations = daily_returns_df.drop(['Date', 'HSBC_return', 'Zijin_Mining_return'], axis=1).corr()
 
-    hsbc_model = sm.OLS(daily_returns_df['HSBC_return'], daily_returns_df[['HSI_return', 'SSE_Comp_return', 'XAU_return']]).fit()
+    regression_data = daily_returns_df[['HSI_return', 'SSE_Comp_return', 'XAU_return']]
+    regression_data = sm.add_constant(regression_data)
+
+    hsbc_model = sm.OLS(daily_returns_df['HSBC_return'], regression_data).fit()
     hsbc_hsi_exposure = hsbc_model.params['HSI_return']
     hsbc_sse_exposure = hsbc_model.params['SSE_Comp_return']
     hsbc_xau_exposure = hsbc_model.params['XAU_return']
     hsbc_specific_risk = hsbc_model.resid.std() * sqrt(252)
 
     print('Factor model for HSBC')
+    print('HSBC Alpha = {0:.4f}'.format(hsbc_model.params['const']))
     print('HSBC Exposure on HSI = {0:.4f}, SSE Comp = {1:.4f}, XAU = {2:.4f}'.format(hsbc_hsi_exposure, hsbc_sse_exposure, hsbc_xau_exposure))
     print('HSBC Specific Risk {0:.4f}%'.format(hsbc_specific_risk*100))
     print()
 
-    zijin_model = sm.OLS(daily_returns_df['Zijin_Mining_return'], daily_returns_df[['HSI_return', 'SSE_Comp_return', 'XAU_return']]).fit()
+    zijin_model = sm.OLS(daily_returns_df['Zijin_Mining_return'], regression_data).fit()
     zijin_hsi_exposure = zijin_model.params['HSI_return']
     zijin_sse_exposure = zijin_model.params['SSE_Comp_return']
     zijin_xau_exposure = zijin_model.params['XAU_return']
     zijin_specific_risk = zijin_model.resid.std() * sqrt(252)
 
     print('Factor model for Zijin Mining')
+    print('Zijin Mining Alpha = {0:.4f}'.format(zijin_model.params['const']))
     print('Zijin Mining Exposure on HSI = {0:.4f}, SSE Comp = {1:.4f}, XAU = {2:.4f}'.format(zijin_hsi_exposure, zijin_sse_exposure, zijin_xau_exposure))
     print('Zijin Mining Specific Risk {0:.4f}%'.format(zijin_specific_risk*100))
     print()
