@@ -141,7 +141,7 @@ def x_sigma_rho_decomposition(hsbc_weight, zijin_mining_weight, model):
     # portfolio total variance
     portfolio_total_variance = portfolio_weight.transpose() @ (stocks_exposure @ factors_covariance @ stocks_exposure.transpose() + stocks_specific_covariance) @ portfolio_weight
 
-    # portfolio total risk (sigma)
+    # portfolio total risk (sigma_p)
     portfolio_total_risk = np.sqrt(portfolio_total_variance)
     
     print('Portfolio Total Risk {0:.4f}%'.format(portfolio_total_risk[0, 0] * 100))
