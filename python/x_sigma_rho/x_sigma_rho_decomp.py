@@ -3,7 +3,26 @@ import numpy as np
 import statsmodels.api as sm
 from math import sqrt
 
-if __name__ == '__main__':
+class FactorModel:
+    def __init__(self, hsbc_hsi_exposure, hsbc_sse_exposure, hsbc_xau_exposure, hsbc_specific_risk, 
+            zijin_hsi_exposure, zijin_sse_exposure, zijin_xau_exposure, zijin_specific_risk, 
+            hsi_return_sd, sse_composite_return_sd, xau_return_sd, factors_correlations):
+        
+        self.hsbc_hsi_exposure = hsbc_hsi_exposure
+        self.hsbc_sse_exposure = hsbc_sse_exposure
+        self.hsbc_xau_exposure = hsbc_xau_exposure
+        self.hsbc_specific_risk = hsbc_specific_risk
+        self.zijin_hsi_exposure = zijin_hsi_exposure
+        self.zijin_sse_exposure = zijin_sse_exposure
+        self.zijin_xau_exposure = zijin_xau_exposure
+        self.zijin_specific_risk = zijin_specific_risk
+        self.hsi_return_sd = hsi_return_sd
+        self.sse_composite_return_sd = sse_composite_return_sd
+        self.xau_return_sd = xau_return_sd
+        self.factors_correlations = factors_correlations
+
+
+def build_multi_factors_model():
     # the two stocks
     hsbc_df = pd.read_csv('0005.HK.csv')
     zijin_mining_df = pd.read_csv('2899.HK.csv')
@@ -52,6 +71,7 @@ if __name__ == '__main__':
     hsbc_xau_exposure = hsbc_model.params['XAU_return']
     hsbc_specific_risk = hsbc_model.resid.std() * sqrt(252)
 
+    print('=================================')
     print('Factor model for HSBC')
     print('HSBC Alpha = {0:.4f}'.format(hsbc_model.params['const']))
     print('HSBC Exposure on HSI = {0:.4f}, SSE Comp = {1:.4f}, XAU = {2:.4f}'.format(hsbc_hsi_exposure, hsbc_sse_exposure, hsbc_xau_exposure))
@@ -69,11 +89,26 @@ if __name__ == '__main__':
     print('Zijin Mining Exposure on HSI = {0:.4f}, SSE Comp = {1:.4f}, XAU = {2:.4f}'.format(zijin_hsi_exposure, zijin_sse_exposure, zijin_xau_exposure))
     print('Zijin Mining Specific Risk {0:.4f}%'.format(zijin_specific_risk*100))
     print()
+
+    print('Common Factors:')
+    print('HSI return annualized stdev = {0:.4f}%'.format(hsi_return_sd * 100))
+    print('SSE Composite return annalized stdev = {0:.4f}%'.format(sse_composite_return_sd * 100))
+    print('XAU return annualized stdev = {0:.4f}%'.format(xau_return_sd * 100))
+    print('Factors Correlation Matrix:')
+    print(factors_correlations)
+    print()
+    print('=================================')
+
     # print(zijin_model.summary())
 
-    # HSBC is stock 1, Zijin Mining is stock 2.
-    hsbc_weight = 0.7
-    zijin_mining_weight = 0.3
+    return FactorModel(hsbc_hsi_exposure, hsbc_sse_exposure, hsbc_xau_exposure, hsbc_specific_risk, 
+                    zijin_hsi_exposure, zijin_sse_exposure, zijin_xau_exposure, zijin_specific_risk, 
+                    hsi_return_sd, sse_composite_return_sd, xau_return_sd, factors_correlations)
+
+def x_sigma_rho_decomposition(hsbc_weight, zijin_mining_weight, model):
+
+    print('********** X Sigma Rho Decomposition **********')
+    print()
     print('Portfolio weights: HSBC = {0:.4f}%, Zijin Mining = {1:.4f}%'.format(hsbc_weight, zijin_mining_weight))
     print()
 
@@ -83,8 +118,8 @@ if __name__ == '__main__':
                                  ])
     # stock factor exposure matrix (X)
     stocks_exposure = np.array([
-        [hsbc_hsi_exposure, hsbc_sse_exposure, hsbc_xau_exposure],
-        [zijin_hsi_exposure, zijin_sse_exposure, zijin_xau_exposure]
+        [model.hsbc_hsi_exposure, model.hsbc_sse_exposure, model.hsbc_xau_exposure],
+        [model.zijin_hsi_exposure, model.zijin_sse_exposure, model.zijin_xau_exposure]
     ])
 
     # portfolio exposure (x)
@@ -92,26 +127,24 @@ if __name__ == '__main__':
 
     # stock specific covariance matrix (D)
     stocks_specific_risk = np.array([
-        [hsbc_specific_risk],
-        [zijin_specific_risk]
+        [model.hsbc_specific_risk],
+        [model.zijin_specific_risk]
     ])
     # assume no correlation so only diagonal variance values.
     stocks_specific_covariance = np.diag(stocks_specific_risk.flatten()) @ np.diag(stocks_specific_risk.flatten())
 
-    factors_stdev = np.array([[hsi_return_sd], [sse_composite_return_sd], [xau_return_sd]])
+    factors_stdev = np.array([[model.hsi_return_sd], [model.sse_composite_return_sd], [model.xau_return_sd]])
 
     # factors covariance matrix (F)
-    factors_covariance = np.diag(factors_stdev.flatten()) @ factors_correlations.values @ np.diag(factors_stdev.flatten())
+    factors_covariance = np.diag(factors_stdev.flatten()) @ model.factors_correlations.values @ np.diag(factors_stdev.flatten())
 
     # portfolio total variance
     portfolio_total_variance = portfolio_weight.transpose() @ (stocks_exposure @ factors_covariance @ stocks_exposure.transpose() + stocks_specific_covariance) @ portfolio_weight
 
     # portfolio total risk (sigma)
     portfolio_total_risk = np.sqrt(portfolio_total_variance)
-
     
     print('Portfolio Total Risk {0:.4f}%'.format(portfolio_total_risk[0, 0] * 100))
-
     print()
 
     common_factors_risk_contrib = portfolio_exposure.transpose() @ factors_covariance @ portfolio_exposure / portfolio_total_risk
@@ -127,7 +160,6 @@ if __name__ == '__main__':
     print('\t\tContributed by HSI Factor {0:.4f}%'.format(common_factors_risk_decomposition[0, 0] * 100))
     print('\t\tContributed by SSE Composite Factor {0:.4f}%'.format(common_factors_risk_decomposition[1, 0] * 100))
     print('\t\tContributed by XAU Factor {0:.4f}%'.format(common_factors_risk_decomposition[2, 0] * 100))
-
     print()
 
     specific_risk_contrib = portfolio_weight.transpose() @ stocks_specific_covariance @ portfolio_weight / portfolio_total_risk
@@ -141,3 +173,15 @@ if __name__ == '__main__':
     specific_risk_decomposition = portfolio_weight * stocks_specific_risk * correlation_specific_risk_marginal
     print('\t\tContributed by HSBC position {0:.4f}%'.format(specific_risk_decomposition[0, 0] * 100))
     print('\t\tContributed by Zijin Mining position {0:.4f}%'.format(specific_risk_decomposition[1, 0] * 100))
+
+if __name__ == '__main__':
+
+    # build the multi factors model.
+    model = build_multi_factors_model()
+
+    # HSBC is stock 1, Zijin Mining is stock 2.
+    hsbc_weight = 0.7
+    zijin_mining_weight = 0.3
+
+    x_sigma_rho_decomposition(hsbc_weight, zijin_mining_weight, model)
+
