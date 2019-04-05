@@ -179,7 +179,7 @@ if __name__ == '__main__':
     # build the multi factors model.
     model = build_multi_factors_model()
 
-    # HSBC is stock 1, Zijin Mining is stock 2.
+    # Portfolio weighting on HSBC and Zijin Mining. Adding up to 1.
     hsbc_weight = 0.7
     zijin_mining_weight = 0.3
 
