@@ -99,8 +99,6 @@ def build_multi_factors_model():
     print()
     print('=================================')
 
-    # print(zijin_model.summary())
-
     return FactorModel(hsbc_hsi_exposure, hsbc_sse_exposure, hsbc_xau_exposure, hsbc_specific_risk, 
                     zijin_hsi_exposure, zijin_sse_exposure, zijin_xau_exposure, zijin_specific_risk, 
                     hsi_return_sd, sse_composite_return_sd, xau_return_sd, factors_correlations)
@@ -112,20 +110,20 @@ def x_sigma_rho_decomposition(hsbc_weight, zijin_mining_weight, model):
     print('Portfolio weights: HSBC = {0:.4f}%, Zijin Mining = {1:.4f}%'.format(hsbc_weight * 100, zijin_mining_weight * 100))
     print()
 
-    # portfolio weight vector (h)
+    # portfolio weight vector (w)
     portfolio_weight = np.array([[hsbc_weight],
                                  [zijin_mining_weight]
                                  ])
-    # stock factor exposure matrix (X)
-    stocks_exposure = np.array([
+    # common factor exposure matrix (F)
+    factor_exposure = np.array([
         [model.hsbc_hsi_exposure, model.hsbc_sse_exposure, model.hsbc_xau_exposure],
         [model.zijin_hsi_exposure, model.zijin_sse_exposure, model.zijin_xau_exposure]
     ])
 
     # portfolio exposure (x)
-    portfolio_exposure = stocks_exposure.transpose() @ portfolio_weight
+    portfolio_exposure = factor_exposure.transpose() @ portfolio_weight
 
-    # stock specific covariance matrix (D)
+    # stock specific covariance matrix (Q)
     stocks_specific_risk = np.array([
         [model.hsbc_specific_risk],
         [model.zijin_specific_risk]
@@ -135,11 +133,11 @@ def x_sigma_rho_decomposition(hsbc_weight, zijin_mining_weight, model):
 
     factors_stdev = np.array([[model.hsi_return_sd], [model.sse_composite_return_sd], [model.xau_return_sd]])
 
-    # factors covariance matrix (F)
+    # factors covariance matrix (C)
     factors_covariance = np.diag(factors_stdev.flatten()) @ model.factors_correlations.values @ np.diag(factors_stdev.flatten())
 
-    # portfolio total variance
-    portfolio_total_variance = portfolio_weight.transpose() @ (stocks_exposure @ factors_covariance @ stocks_exposure.transpose() + stocks_specific_covariance) @ portfolio_weight
+    # portfolio total variance (Var(R_p))
+    portfolio_total_variance = portfolio_weight.transpose() @ (factor_exposure @ factors_covariance @ factor_exposure.transpose() + stocks_specific_covariance) @ portfolio_weight
 
     # portfolio total risk (sigma_p)
     portfolio_total_risk = np.sqrt(portfolio_total_variance)
@@ -147,29 +145,34 @@ def x_sigma_rho_decomposition(hsbc_weight, zijin_mining_weight, model):
     print('Portfolio Total Risk {0:.4f}%'.format(portfolio_total_risk[0, 0] * 100))
     print()
 
+    # common factor contribution (sigma_f)
     common_factors_risk_contrib = portfolio_exposure.transpose() @ factors_covariance @ portfolio_exposure / portfolio_total_risk
     print('\tRisk Contributed by Common Factors {0:.4f}%'.format(common_factors_risk_contrib[0, 0] * 100))
 
-    # calculate the marginal for common factors (f_mc)
+    # calculate the marginal for common factors (c_f)
     common_factors_marginal_contrib = factors_covariance @ portfolio_exposure / portfolio_total_risk
 
-    # correlation of factor marginal contribution (rho)
+    # correlation of each factor return and total portfolio return (rho(R_i, R_p))
     correlation_factor_marginal = common_factors_marginal_contrib / factors_stdev
 
+    # each individual summation term in sigma_f
     common_factors_risk_decomposition = portfolio_exposure * factors_stdev * correlation_factor_marginal
     print('\t\tContributed by HSI Factor {0:.4f}%'.format(common_factors_risk_decomposition[0, 0] * 100))
     print('\t\tContributed by SSE Composite Factor {0:.4f}%'.format(common_factors_risk_decomposition[1, 0] * 100))
     print('\t\tContributed by XAU Factor {0:.4f}%'.format(common_factors_risk_decomposition[2, 0] * 100))
     print()
 
+    # specific risk contribution (sigma_q)
     specific_risk_contrib = portfolio_weight.transpose() @ stocks_specific_covariance @ portfolio_weight / portfolio_total_risk
     print('\tRisk Contributed by Specific Risk {0:.4f}%'.format(specific_risk_contrib[0, 0] * 100))
 
-    # calculate the marignal for specific risk (s_mc)
+    # calculate the marignal for specific risk (c_q)
     specific_risk_marginal_contrib = stocks_specific_covariance @ portfolio_weight / portfolio_total_risk
 
+    # correlation of asset specific return and total portfolio return (rho(epsilon_j, R_p))
     correlation_specific_risk_marginal = specific_risk_marginal_contrib / stocks_specific_risk
 
+    # each individual summation term in sigma_q
     specific_risk_decomposition = portfolio_weight * stocks_specific_risk * correlation_specific_risk_marginal
     print('\t\tContributed by HSBC position {0:.4f}%'.format(specific_risk_decomposition[0, 0] * 100))
     print('\t\tContributed by Zijin Mining position {0:.4f}%'.format(specific_risk_decomposition[1, 0] * 100))
