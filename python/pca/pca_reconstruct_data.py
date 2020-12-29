@@ -2,13 +2,13 @@ import numpy as np
 from numpy.linalg import eig
 
 # number of variables
-n=3
+n=4
 # number of observations
 p=10
 
-np.random.seed(1)
+np.random.seed(10)
 
-X = np.random.normal(5.0, 1.0, size=(p, n))
+X = np.random.beta(15, 4, size=(p, n))
 
 # mean center the observation
 bar_X = X.mean(axis=0)
@@ -38,3 +38,16 @@ X_new = W.dot(U.transpose()) + bar_X
 
 # Check data reconstruction result
 print('Reconstructed data matched:', np.all(np.isclose(X - X_new,0)))
+
+
+# take only top three components
+num_pc = 3
+# sort the eigenvalues and eigenvectors
+idx = eig_vals.argsort()[::-1]   
+eig_vals = eig_vals[idx]
+U = U[:,idx]
+
+X_new2 = Y.dot(U[:,0:num_pc]).dot(U[:,0:num_pc].transpose()) + bar_X
+print('Result Matrix difference if we take only {0} PCs'.format(num_pc))
+print(X-X_new2)
+
